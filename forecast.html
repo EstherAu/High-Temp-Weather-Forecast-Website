@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>週間高温予報</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-image: url('sky-image.jpg'); /* 顶栏的背景图片路径 */
+            background-size: cover;
+            color: white;
+            padding: 4px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* 使内容在顶栏两端 */
+            padding-left: 170px; /* 将左侧内容与网页左侧边缘拉开距离 */
+            
+        }
+        header img {
+            height: 40px; /* 顶栏logo的尺寸 */
+            margin-right: 3px; /* 缩小图标与文字之间的距离 */
+        }
+        header h1 {
+            flex-grow: 1;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .home-btn {
+            background-color: #f1f7fc; /* 按钮的背景色 */
+            color: rgb(99, 98, 98); 
+            border: none; 
+            padding: 5px 10px; 
+            margin-right: 173px; 
+            border-radius: 3px; /* 边框的圆角 */
+            cursor: pointer;
+            height: 25px; 
+            display: flex; /* 使用flex布局 */
+            align-items: center; 
+            justify-content: center; 
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 8px; /* 地图与顶栏之间的间距 */
+        }
+        .box {
+            background-color: white;
+            padding: 12px 12px 12px 12px;
+            margin: 10px 10px 10px 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            width: 75%;
+            max-width: 1200px; /* 可根据需要调整 */
+        }
+        #map {
+            height: 700px;
+            width: 100%;
+            position: relative;
+            margin-bottom: 0px; 
+        }
+        .leaflet-container {
+            background: #ffffff; /* 将海洋设置为白色 */
+        }
+        .date {
+            position: absolute;
+            top: 19px; /* 向下移动 */
+            left: 60px; /* 向右移动 */
+            /* font-size: 2em; /* 字体大小 */
+            color: #fdfeff;
+            background-color: rgba(80, 79, 79, 0.566); 
+            padding: 8px 10px 8px 15px;
+            border-radius: 20px;
+            z-index: 1001; /* 确保日期显示在最上层 */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 阴影 */
+        }
+
+        .date-display {
+            font-size: 1.5em; /* 日期字体大小 */
+            color: #fcfcfc; 
+            text-align: left; /* 左对齐 */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); 
+        }
+
+        .city-display {
+            font-size: 2em; /* 城市名字体大小 */
+            color: #fcfcfc; 
+            text-align: left; 
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); 
+        }
+
+        .country-display {
+            font-size: 1.2em; /* 国家名字体大小 */
+            color: #fcfcfc; 
+            text-align: left; 
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); 
+        }
+
+        .temperature-display {
+            font-size: 2em; 
+            color: #fcfcfc; 
+            text-align: left; 
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7); 
+        }
+
+        .feels-like-display {
+            font-size: 1.2em; 
+            color: #fcfcfc; 
+            text-align: left; 
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3); 
+        }
+
+
+        .weather-forecast {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+             width: 200px;
+        }
+
+        .weather-forecast select {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .weather-forecast table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .weather-forecast th, .weather-forecast td {
+            text-align: center;
+            padding: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .weather-forecast th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        .alerts {
+            position: absolute;
+            top: 300px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.95); 
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-height: 328px; /* 初始显示前10个城市 */
+            overflow-y: auto; /* 垂直滚动条 */
+            overflow-x: hidden; /* 隐藏横向滚动条 */
+            font-size: 0.6em; /* 将字体大小调小40% */
+            z-index: 1000; /* 将列表置于地图上层 */
+            margin: 30px 22px 0 30px; /* 拉开与地图的距离 */
+        }
+        /* 自定义滚动条 */
+        .alerts::-webkit-scrollbar {
+            width: 12px; 
+        }
+
+        .alerts::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.2); 
+            border-radius: 5px; /* 圆角 */
+        }
+
+        .alerts::-webkit-scrollbar-thumb {
+            background: #b4b4b4d2; /* 滚动条滑块颜色 */
+            border-radius: 5px; /* 圆角 */
+        }   
+
+        .alerts::-webkit-scrollbar-thumb:hover {
+            background: #888787; /* 滚动条滑块悬停颜色 */
+        }
+
+        .temperature-table {
+            width: 75%; /* 缩小表格长度 */
+            border-collapse: collapse;
+            margin-top:1px; 
+            text-align: left;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: rgba(255, 255, 255, 0); 
+        }
+
+        .temperature-table th, .temperature-table td {
+            border-bottom: 1px solid #d3d3d3;
+            padding: 4px; /* 调整栏高 */
+            text-align: center;
+            color: #2c3e50;
+            white-space: nowrap; /* 防止文字换行 */
+            background-color: rgba(255, 255, 255, 0); 
+        }
+        .temperature-table th {
+            background-color: #f9f9f500; /* 温度表头 */
+            padding: 11.5px; /* 内边距 */  
+        }
+
+        .temperature-table th:first-child {
+            border-top-left-radius: 5px; /* 左上角圆角 */
+            border-bottom-left-radius: 5px; /* 左下角圆角 */
+        }
+
+        .temperature-table th:last-child {
+            border-top-right-radius: 5px; /* 右上角圆角 */
+            border-bottom-right-radius: 5px; /* 右下角圆角 */
+
+        }
+        .temperature-table th:nth-child(1) {
+            width: 40%; /* 增加地点栏的宽度 */
+        }
+        .temperature-table th:nth-child(2),
+        .temperature-table th:nth-child(3) {
+            width: 30%; /* 增加现在气温和最高气温栏的宽度 */
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: -5px;
+            position: sticky; /* 使按钮固定 */
+            top: 0; /* 距离顶部0px */
+            background-color: rgba(255, 255, 255, 0); 
+            z-index: 1; /* 确保按钮在内容之上 */
+            padding: 5px 0; /* 内边距 */
+        }
+        .buttons button {
+            padding: 3px 10px;
+            margin: 0 5px;
+            border: 1px solid #b5b7b8; /* 边框 */
+            background-color: #ba212100; /* 全透明白色 */
+            color: rgb(65, 65, 67);
+            cursor: pointer;
+            border-radius: 10px;
+        }
+        .buttons button.active {
+            background-color: #3f3d3d7d;
+        }
+        .legend {
+            position: absolute; /* 绝对定位 */
+            bottom: 20px; /* 距离底部 */
+            left: 50%; /* 水平位置为50% */
+            transform: translateX(-50%); /* 水平居中 */
+            display: flex; 
+            justify-content: center; /* 子元素水平居中 */
+            background-color: rgba(255, 255, 255, 0.8); 
+            padding: 6px; /* 内边距为10px */
+            border-radius: 5px; /* 边框圆角为5px */
+            z-index: 1000; /* 确保图例在最上层 */
+        }
+        
+        .legend div {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .legend div:last-child {
+            margin-right: 0; /* 右边距 */
+        } 
+        .legend div span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-right: 5px;
+            border-radius: 50%;
+            border: 1px solid #d3d3d3; 
+            opacity: 0.8; /* 透明度 */
+        }
+
+        .circle-red { background-color: #ff9999; }
+        .circle-yellow { background-color: #FCFB94; }
+        .circle-blue { background-color: #ACF7E3; } 
+        .leaflet-control-attribution {
+            bottom: 0 !important;
+            left: 0 !important;
+        }
+        
+    </style>
+</head>
+<body>
+    <header>
+        <img src="charts-icon.png" alt="Charts Icon"> <!-- 图标的路径 -->
+        <h1>週間高温予報</h1>
+        <button class="home-btn" onclick="window.location.href='index.html'">ホーム</button>       
+    </header>
+    <div class="container">
+        <div class="box">
+            <div id="map">
+                <div class="weather-forecast">
+                    <select id="city-select">
+                     
+                    </select>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>日付</th>
+                                <th>最低気温</th>
+                                <th>最高気温</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecast-body">
+                            <!-- 预报数据将动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="date" id="current-date"></div>
+            </div>
+            <div class="legend">
+                <div><span class="circle-red"></span> >35°C</div>
+                <div><span class="circle-yellow"></span> 30-35°C</div>
+                <div><span class="circle-blue"></span> &lt; 30°C</div>
+            </div>
+            <div class="alerts">
+                <div class="buttons">
+                    <button id="current-temp-btn" class="active">現在気温</button>
+                    <button id="max-temp-btn">最高気温</button>
+                </div>
+                <table class="temperature-table">
+                    <thead>
+                        <tr>
+                            <th>地方</th>
+                            <th>現在気温</th>
+                            <th>最高気温</th>
+                        </tr>
+                    </thead>
+                          <tbody id="temperature-list">
+                          <!--  温度数据会显示在这里 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="forecast.js"></script> 
+</body>
+</html>
+
+
