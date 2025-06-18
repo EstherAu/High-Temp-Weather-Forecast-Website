@@ -16,7 +16,6 @@ This project provides a web-based temperatures monitoring and forecast website f
 - **JavaScript:** For fetching data from APIs, processing it, and updating the web page dynamically.
 - **Leaflet.js:** For the interactive map display.
 - **OpenWeatherMap API:** For fetching weather data.
-- **IPInfo API:** For fetching user's location data.
 
 ## Installation and Setup
 
